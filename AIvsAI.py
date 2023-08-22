@@ -8,7 +8,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import cairosvg
 import io
-from util import load_model, choose_move
+from util import choose_move
+from neural_networks import load_model
 
 # SPECIFY DEFAULT SETTINGS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

@@ -102,7 +102,7 @@ class MCTS():
         children_scores = [self.ucb_score(node.visits, child.visits, child.score, exploration_weight) for child in node.children]
         return node.children[children_scores.index(max(children_scores))]
 
-    def simulate(self, node, num_of_simulation): # TODO  do not simulate a random game, but use a neural network to predict the winner
+    def simulate(self, node,): # TODO  do not simulate a random game, but use a neural network to predict the winner
         # For simplicity, we'll perform a random simulation
         sim_state = node.state.copy()
         while not sim_state.is_game_over():
@@ -150,7 +150,7 @@ class MCTS():
 
 if __name__ == "__main__":
     board = chess.Board()
-    mcts = MCTS(board, iterations=50)
+    mcts = MCTS(board, iterations=10)
     while True:
         print(mcts.root_node.state)
         print("##########")

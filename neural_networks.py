@@ -2,7 +2,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from util import board_to_rep
+import chess
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+torch.set_default_tensor_type(torch.DoubleTensor)
 
 
 class CopiedSubModule(nn.Module):
@@ -44,3 +48,26 @@ class CopiedChessNetwork(nn.Module):
 
         x = self.output_layer(x)
         return x
+    
+class DummyNetwork(nn.Module):
+    def __init__(self, policy_network):
+        super(DummyNetwork, self).__init__()
+        self.policy_network = policy_network
+
+    def forward(self, board):
+        x = board_to_rep(board)
+        if board.turn == chess.BLACK:
+            x *= -1
+        x = torch.Tensor(x).double().to(device)
+        x = x.unsqueeze(0)
+        actions = self.policy_network(x)
+        actions = actions.squeeze()
+        value = 0
+        return value, actions
+    
+def load_model():
+    hidden_size = 128
+    hidden_layers = 4
+    model = CopiedChessNetwork(hidden_layers, hidden_size).to(device)
+    model.load_state_dict(torch.load('chess_project/bad_model_weights.pth'))
+    return model
