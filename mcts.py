@@ -4,8 +4,12 @@ import math
 import random
 import numpy as np
 
+from csv_maker import pretty_move, export_csv
+
+
 #set numpy seed
 np.random.seed(0)
+
 
 class Node:
     def __init__(self, state, parent=None):
@@ -17,6 +21,7 @@ class Node:
 
     def is_fully_expanded(self):
         return len(self.children) == len(list(self.state.legal_moves))
+
 
 class MCTS():
     # class invariant: root_node.state must not be a terminal state
@@ -148,15 +153,24 @@ class MCTS():
     def update_root(self, move):
         self.root_node = [child for child in self.root_node.children if child.state.peek() == move][0]
 
+
 if __name__ == "__main__":
     board = chess.Board()
     mcts = MCTS(board, iterations=10)
+
+    move_number = 1
+    all_moves = []
     while True:
         print(mcts.root_node.state)
         print("##########")
         if mcts.root_node.state.is_game_over():
             break
         best_move = mcts.mcts()
+
+        all_moves.append(pretty_move(best_move, move_number))
+        move_number += 1
+
         mcts.update_root(best_move)
-        print(f"The best move found by MCTS is: {best_move}") 
+        print(f"The best move found by MCTS is: {best_move}")
+    export_csv(all_moves)
     
