@@ -9,6 +9,15 @@ letter_to_num = {v: k for k, v in num_to_letter.items()}
 pieces = ['p', 'r', 'n', 'b', 'q', 'k']
 
 
+def mirror(board):
+    new_board = np.zeros((6, 8, 8))
+    for k in range(6):
+        for i in range(8):
+            for j in range(8):
+                new_board[k, i, j] = board[k, (7 - i), j]
+    return new_board
+
+
 def board_to_rep(board: chess.Board):
     layers = np.zeros((len(pieces), 8, 8))
     board_dic = board.piece_map()
@@ -30,18 +39,14 @@ class Chess_Dataset_white(Dataset):
 
     def __getitem__(self, idx):
         index = idx
-        while abs(self.targets[index, 0]) > 999000: # exclude the mates
+        while abs(self.targets[index, 0]) > 999000:  # exclude the mates
             index -= 1
         if self.targets[index, 1]:
             target = self.targets[index, 0]
             position = self.positions[index, :, :, :]
-
-        elif index > 0:
-            target = self.targets[index - 1, 0]
-            position = self.positions[index - 1, :, :, :]
         else:
-            target = self.targets[index + 1, 0]
-            position = self.positions[index + 1, :, :, :]
+            target = - self.targets[index, 0]
+            position = - mirror(self.positions[index, :, :, :])
         sample = {"position": position, "target": target}
         return sample
 
