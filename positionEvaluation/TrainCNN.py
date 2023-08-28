@@ -4,8 +4,8 @@ import torch
 from tqdm import tqdm
 import torch.nn.functional as F
 import torch.nn as nn
-from EvaluationCNN import CopiedChessNetwork
-from processGame import get_samples_white
+from chess_project.neural_networks import CopiedEvalChessNetwork
+from datasets import get_samples_white
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_default_tensor_type(torch.DoubleTensor)
@@ -18,7 +18,7 @@ sample_size = 30
 
 
 def train():
-    model_for_white = CopiedChessNetwork(hidden_layers=hidden_layers, hidden_size=hidden_size)
+    model_for_white = CopiedEvalChessNetwork(hidden_layers=hidden_layers, hidden_size=hidden_size)
     optimizer = torch.optim.Adam(model_for_white.parameters(), lr=lr)
 
     model_for_white.eval()

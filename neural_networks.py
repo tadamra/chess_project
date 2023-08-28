@@ -31,10 +31,10 @@ class CopiedSubModule(nn.Module):
         x = self.activation2(x)
         return x
     
-class CopiedChessNetwork(nn.Module):
+class CopiedPolicyChessNetwork(nn.Module):
 
     def __init__(self, hidden_layers, hidden_size):
-        super(CopiedChessNetwork, self).__init__()
+        super(CopiedPolicyChessNetwork, self).__init__()
         self.hidden_layers = hidden_layers
         self.input_layer = nn.Conv2d(6, hidden_size, 3, stride = 1, padding = 1)
         self.module_list = nn.ModuleList([CopiedSubModule(hidden_size) for _ in range(hidden_layers)])
@@ -65,9 +65,68 @@ class DummyNetwork(nn.Module):
         value = 0
         return value, actions
     
-def load_model():
+def preprocess_board_for_policy(board):
+    x = board_to_rep(board)
+    if board.turn == chess.BLACK:
+        x *= -1
+    x = torch.Tensor(x).double().to(device)
+    x = x.unsqueeze(0)
+    return x
+
+def postprocess_actions_for_policy(actions):
+    actions = actions.squeeze()
+    return actions
+
+def preprocess_board_for_eval(board):
+    x = board_to_rep(board)
+    if board.turn == chess.BLACK:
+        x *= -1
+    x = torch.Tensor(x).double().to(device)
+    x = x.unsqueeze(0)
+    return x
+
+def postprocess_value_for_eval(value, board):
+    if board.turn == chess.BLACK:
+        value *= -1
+    return value
+
+def load_policy_model():
     hidden_size = 128
     hidden_layers = 4
-    model = CopiedChessNetwork(hidden_layers, hidden_size).to(device)
+    model = CopiedPolicyChessNetwork(hidden_layers, hidden_size).to(device)
     model.load_state_dict(torch.load('chess_project/bad_model_weights.pth'))
     return model
+
+def load_eval_model():
+    hidden_size = 128
+    hidden_layers = 4
+    model = CopiedEvalChessNetwork(hidden_layers, hidden_size).to(device)
+    model.load_state_dict(torch.load('chess_project/positionEvaluation/model_white_weights.pth'))
+    return model
+
+
+class CopiedEvalChessNetwork(nn.Module):
+
+    def __init__(self, hidden_layers, hidden_size):
+        super(CopiedEvalChessNetwork, self).__init__()
+        self.hidden_layers = hidden_layers
+        self.input_layer = nn.Conv2d(6, hidden_size, 3, stride=1, padding=1)
+        self.module_list = nn.ModuleList([CopiedSubModule(hidden_size) for _ in range(hidden_layers)])
+        self.linear1 = nn.Linear(8*8*hidden_size, 128)
+        self.linear2 = nn.Linear(128, 64)
+        self.output_layer = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = self.input_layer(x)
+        x = F.relu(x)
+
+        for i in range(self.hidden_layers):
+            x = self.module_list[i](x)
+        # Flatten the tensor for the linear layers
+        x = x.view(x.size(0), -1)  # Reshape to (batch_size, hidden_size * output_height * output_width)
+        x = self.linear1(x)
+        x = F.relu(x)
+        x = self.linear2(x)
+        x = F.relu(x)
+        x = self.output_layer(x)
+        return x

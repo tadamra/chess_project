@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 import cairosvg
 import io
 from util import choose_move
-from neural_networks import load_model
+from neural_networks import load_policy_model
 
 # SPECIFY DEFAULT SETTINGS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -21,7 +21,7 @@ class ChessGame:
         self.board = chess.Board()
         self.ai_move_function = ai_move_function
 
-        self.model = load_model()
+        self.model = load_policy_model()
 
         self.state = 0
         self.from_square = None

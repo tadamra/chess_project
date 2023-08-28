@@ -1,8 +1,7 @@
 import pathlib
 import chess.pgn
 import numpy as np
-
-from processGame import board_to_rep
+from chess_project.util import board_to_rep
 
 
 def generate_data(filename, number_of_games_to_analyze=np.inf, number_of_positions=np.inf):
