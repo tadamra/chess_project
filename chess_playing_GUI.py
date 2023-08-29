@@ -8,8 +8,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import cairosvg
 import io
-from util import choose_move
-from neural_networks import load_policy_model
+from util import choose_move, get_move_from_rep
+from neural_networks import load_policy_model, load_policy_model_with_extended_move_rep
 
 # SPECIFY DEFAULT SETTINGS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -68,7 +68,7 @@ class ChessGUI:
             elif self.state == 2:
                 print("AI is thinking...")
                 if not self.board.is_game_over() and self.board.turn == chess.BLACK:
-                    ai_move = self.ai_move_function(self.model, self.board, chess.BLACK)
+                    ai_move = self.ai_move_function(self.model, self.board)
                     self.board.push(ai_move)
                     self.update_board()
                 self.state = 0

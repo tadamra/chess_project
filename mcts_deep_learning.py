@@ -4,7 +4,7 @@ import math
 import random
 import numpy as np
 import pandas as pd
-from util import get_letter_to_num, board_to_rep
+from util import get_letter_to_num, board_to_rep, get_probs_from_extended_rep, get_probs_from_rep
 from neural_networks import preprocess_board_for_policy, postprocess_actions_for_policy, preprocess_board_for_eval, postprocess_value_for_eval
 import torch
 import torch.nn.functional as F
@@ -44,28 +44,33 @@ class MCTS():
             simulation_result = self.simulate(new_node)
             self.backpropagate(new_node, simulation_result)
     
-    def select_action(self, node, actions,):
+    def select_action(self, node,):
         inp = preprocess_board_for_policy(node.state)
         output = self.policy_model(inp)
-        actions = postprocess_actions_for_policy(output)
+        actions = postprocess_actions_for_policy(output, node.state)
 
         legal_moves = list(node.state.legal_moves)
-        probs =np.zeros(len(legal_moves))
-        probs_from = np.zeros(len(legal_moves))
-        probs_to = np.zeros(len(legal_moves))
-        for i, legal_move in enumerate(legal_moves):
-            from_ = str(legal_move)[0:2]
-            to = str(legal_move)[2:4]
-            probs_from[i] = actions[0, ...][8-int(from_[1]), get_letter_to_num(from_[0]),] # Attention: probs_from might contain probabilities for the same from_ multiple times
-            probs_to[i] = actions[1, ...][8-int(to[1]), get_letter_to_num(to[0]),] # Attention: probs_to might contain probabilities for the same to multiple times
-        probs_from = F.softmax(torch.Tensor(probs_from), dim = 0)
-        probs_to = F.softmax(torch.Tensor(probs_to), dim = 0)
-        probs = probs_from * probs_to # Attention: probs are not actually probabilities
-        probs = probs / probs.sum()
+        #probs =np.zeros(len(legal_moves))
+        #probs_from = np.zeros(len(legal_moves))
+        #probs_to = np.zeros(len(legal_moves))
+        #for i, legal_move in enumerate(legal_moves):
+        #    from_ = str(legal_move)[0:2]
+        #    to = str(legal_move)[2:4]
+        #    probs_from[i] = actions[0, ...][8-int(from_[1]), get_letter_to_num(from_[0]),] # Attention: probs_from might contain probabilities for the same from_ multiple times
+        #    probs_to[i] = actions[1, ...][8-int(to[1]), get_letter_to_num(to[0]),] # Attention: probs_to might contain probabilities for the same to multiple times
+        #probs_from = F.softmax(torch.Tensor(probs_from), dim = 0)
+        #probs_to = F.softmax(torch.Tensor(probs_to), dim = 0)
+        #probs = probs_from * probs_to # Attention: probs are not actually probabilities
+        #probs = probs / probs.sum()
+        probs = get_probs_from_rep(actions, node.state)
+        #print(node.state)
+        #print(legal_moves)
+        #print(probs)
+        #input("Press Enter to continue...")
         index = np.argmax(self.ucb_q_scores(node, probs))
         return legal_moves[index]
 
-    def ucb_q_scores(self, node, probs,exploration_weight=1.0):
+    def ucb_q_scores(self, node, probs,exploration_weight=0.5):
         legal_moves = list(node.state.legal_moves)
         q_scores = np.zeros(len(legal_moves))
         for i, legal_move in enumerate(legal_moves):
@@ -95,10 +100,7 @@ class MCTS():
 
     def select(self, node,):
         while not node.state.is_game_over():
-            inp = preprocess_board_for_policy(node.state)
-            output = self.policy_model(inp)
-            actions = postprocess_actions_for_policy(output)
-            action = self.select_action(node, actions)
+            action = self.select_action(node)
             already_tested_action = [child for child in node.children if child.state.peek() == action]
             if len(already_tested_action) != 0:
                 node = already_tested_action[0]
@@ -115,29 +117,29 @@ class MCTS():
         node.children.append(child)
         return child
 
-    #def simulate(self, node,): 
-    #    sim_state = node.state.copy()
-    #    i = 0
-    #    while not sim_state.is_game_over():
-    #        if i > 100:
-    #            break
-    #        random_move = random.choice(list(sim_state.legal_moves))
-    #        sim_state.push(random_move)
-    #    winner = self.get_winner(sim_state)
-    #    return winner
+    def simulate(self, node,): 
+        sim_state = node.state.copy()
+        i = 0
+        while not sim_state.is_game_over():
+            if i > 100:
+                break
+            random_move = random.choice(list(sim_state.legal_moves))
+            sim_state.push(random_move)
+        winner = self.get_winner(sim_state)
+        return winner
     
     # use when we have a neural network to evaluate a position
-    def simulate(self, node,):
-        sim_state = node.state.copy()
-        if sim_state.is_game_over():
-            return self.get_winner(sim_state)
-        else:
-            inp = preprocess_board_for_eval(sim_state)
-            out = self.eval_model(inp)
-            value = postprocess_value_for_eval(out, sim_state)
-            print(node.state.turn, value)
-            value = F.tanh(value)
-            return value # positive value indicates white is winning, negative value indicates black is winning
+    #def simulate(self, node,):
+    #    sim_state = node.state.copy()
+    #    if sim_state.is_game_over():
+    #        return self.get_winner(sim_state)
+    #    else:
+    #        inp = preprocess_board_for_eval(sim_state)
+    #        out = self.eval_model(inp)
+    #        value = postprocess_value_for_eval(out, sim_state)
+    #        print(node.state.turn, value)
+    #        value = F.tanh(value)
+    #        return value # positive value indicates white is winning, negative value indicates black is winning
     
     def get_winner(self, state):
         if state.is_checkmate():
@@ -158,12 +160,12 @@ class MCTS():
 
             node = node.parent
 
-    def get_best_move(self, node, i = 0):
+    def get_best_move(self, node, iterations = 0):
         children_scores = [child.visits for child in node.children]
 
         # filter i best moves (to avoid repetition of moves)
-        for i in range(0):
-            index, best_state = np.argmax(children_scores)
+        for _ in range(iterations):
+            index = np.argmax(children_scores)
             children_scores[index] = -np.inf
 
         best_index = np.argmax(children_scores)

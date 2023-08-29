@@ -6,7 +6,7 @@ import random
 import numpy as np
 import pandas as pd
 from util import get_letter_to_num, board_to_rep
-from neural_networks import load_policy_model, load_eval_model
+from neural_networks import load_policy_model, load_policy_model_with_extended_move_rep, load_eval_model
 import torch
 import torch.nn.functional as F
 
@@ -14,17 +14,7 @@ if __name__ == "__main__":
     board = chess.Board()
     policy_model = load_policy_model()
     eval_model = load_eval_model()
-    res = eval_model.forward(torch.ones(1,6,8,8)*-1)
-    out_1 =policy_model.forward(torch.ones(1,6,8,8)*-1)
-    out_2 = policy_model.forward(torch.ones(1,6,8,8))
-    print(out_1)
-    print(out_2)
-    print(res)
-    exit()
-    res = eval_model(torch.ones(1,6,8,8))
-    print(res)
-    exit()
-    mcts = MCTS(board, policy_model, eval_model, iterations= 50)
+    mcts = MCTS(board, policy_model, eval_model, iterations= 10)
     root_node = mcts.root_node
     i = 0
     winner = 0
@@ -47,7 +37,7 @@ if __name__ == "__main__":
         best_move = mcts.get_best_move(mcts.root_node)
         if len(moves) >= 6:
             if str(moves[-4]) == str(best_move): #and moves[-2] == moves[-6]:
-                best_move = mcts.get_best_move(mcts.root_node, i = 1)
+                best_move = mcts.get_best_move(mcts.root_node, iterations = 1)
                 print("repetition avoidance")
         states.append(mcts.root_node.state.board_fen())
         moves.append(str(best_move))

@@ -49,6 +49,24 @@ class CopiedPolicyChessNetwork(nn.Module):
         x = self.output_layer(x)
         return x
     
+class CopiedPolicyChessNetworkWithExtendedMoveRep(nn.Module):
+
+    def __init__(self, hidden_layers, hidden_size):
+        super(CopiedPolicyChessNetworkWithExtendedMoveRep, self).__init__()
+        self.hidden_layers = hidden_layers
+        self.input_layer = nn.Conv2d(6, hidden_size, 3, stride = 1, padding = 1)
+        self.module_list = nn.ModuleList([CopiedSubModule(hidden_size) for _ in range(hidden_layers)])
+        self.output_layer = nn.Conv2d(hidden_size, 12, 3, stride = 1, padding = 1)
+    def forward(self, x):
+        x = self.input_layer(x)
+        x = F.relu(x)
+
+        for i in range(self.hidden_layers):
+            x = self.module_list[i](x)
+
+        x = self.output_layer(x)
+        return x
+    
 class DummyNetwork(nn.Module):
     def __init__(self, policy_network):
         super(DummyNetwork, self).__init__()
@@ -67,14 +85,17 @@ class DummyNetwork(nn.Module):
     
 def preprocess_board_for_policy(board):
     x = board_to_rep(board)
+    x = torch.Tensor(x).double().to(device)
     if board.turn == chess.BLACK:
         x *= -1
-    x = torch.Tensor(x).double().to(device)
+        x = x.flip(1)
     x = x.unsqueeze(0)
     return x
 
-def postprocess_actions_for_policy(actions):
+def postprocess_actions_for_policy(actions, board):
     actions = actions.squeeze()
+    if board.turn == chess.BLACK:
+        actions = actions.flip(1)
     return actions
 
 def preprocess_board_for_eval(board):
@@ -95,6 +116,13 @@ def load_policy_model():
     hidden_layers = 4
     model = CopiedPolicyChessNetwork(hidden_layers, hidden_size).to(device)
     model.load_state_dict(torch.load('chess_project/bad_model_weights.pth'))
+    return model
+
+def load_policy_model_with_extended_move_rep():
+    hidden_size = 64
+    hidden_layers = 4
+    model = CopiedPolicyChessNetworkWithExtendedMoveRep(hidden_layers, hidden_size).to(device)
+    model.load_state_dict(torch.load('chess_project/extended_rep_model_weights.pth', map_location=torch.device('cpu')))
     return model
 
 def load_eval_model():
