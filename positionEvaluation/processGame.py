@@ -3,19 +3,12 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 
+from util import mirror
+
 num_to_letter = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
 letter_to_num = {v: k for k, v in num_to_letter.items()}
 
 pieces = ['p', 'r', 'n', 'b', 'q', 'k']
-
-
-def mirror(board):
-    new_board = np.zeros((6, 8, 8))
-    for k in range(6):
-        for i in range(8):
-            for j in range(8):
-                new_board[k, i, j] = board[k, (7 - i), j]
-    return new_board
 
 
 def board_to_rep(board: chess.Board):

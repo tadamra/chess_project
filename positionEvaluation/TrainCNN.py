@@ -3,7 +3,6 @@ import pathlib
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from tqdm import tqdm
 
 import EvaluationCNN
@@ -12,20 +11,20 @@ from processGame import get_samples_white
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-lr = 0.000001
+lr = 1e-6
 N_epochs = 14
 hidden_size = 128
 hidden_layers = 4
 batch_size = 30
-data_size = 40000
+data_size = 200000
 number_of_files_to_use = int(data_size/20000)
-starting_file = 15
+starting_file = 0
 
 def train():
 
     model_for_white = EvaluationCNN.EvaluationNetwork(hidden_layers=hidden_layers, hidden_size=hidden_size)
-    model_for_white.load_state_dict(torch.load("model_white_weights23.pth"))
-    # model_for_white = EvaluationCNN.ChessEvaluationNetwork()
+    # model_for_white.load_state_dict(torch.load("model_white_weights.pth"))
+    model_for_white = EvaluationCNN.ChessEvaluationNetwork()
 
     optimizer = torch.optim.Adam(model_for_white.parameters(), lr=lr)
 

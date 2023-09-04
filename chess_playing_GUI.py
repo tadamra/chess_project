@@ -1,13 +1,13 @@
 #IMPORTS
-import numpy as np
-import chess
-import torch
-import torch.nn.functional as F
-import chess.svg
-import tkinter as tk
-from PIL import Image, ImageTk
-import cairosvg
 import io
+import tkinter as tk
+
+import cairosvg
+import chess
+import chess.svg
+import torch
+from PIL import Image, ImageTk
+
 from util import load_model, choose_move
 
 # SPECIFY DEFAULT SETTINGS
@@ -15,11 +15,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.set_default_tensor_type(torch.DoubleTensor)
 
 class ChessGUI:
-    def __init__(self, root, ai_move_function):
+    def __init__(self, root, ai_move_function, board):
         self.root = root
         self.root.title("Chess Game")
 
-        self.board = chess.Board()
+        self.board = board
         self.ai_move_function = ai_move_function
 
         self.model = load_model()
